@@ -1,0 +1,10 @@
+name: budget-app
+version: 0.1.0
+
+dependencies:
+  validator:
+    github: nicolab/crystal-validator
+  pg:
+    github: will/crystal-pg
+
+license: MIT
