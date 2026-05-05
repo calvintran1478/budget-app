@@ -3,6 +3,8 @@ require "base64"
 module Utils::Token
   extend self
 
+  USER_ID_LENGTH = 36
+
   # Claims stored within an access token
   struct AccessClaims
     getter user_id : String
@@ -24,6 +26,28 @@ module Utils::Token
       # Write encoded payload and signature to the provided IO
       io << encoded_payload
       io << Base64.urlsafe_encode(OpenSSL::HMAC.digest(:sha256, key, encoded_payload), false)
+    end
+
+    # Parses the provided access token for its contents.
+    #
+    # Upon success this returns the user id contained within the token. If
+    # validation fails due to modification or expiration time this function
+    # returns nil.
+    def AccessClaims.decode(token : Pointer(UInt8), key : String) : (String | Nil)
+      # Parse token into its two segments
+      encoded_payload = Bytes.new(token, 47)
+      encoded_signature = Bytes.new(token + 47, 43)
+
+      # Verify signature
+      expected_encoded_signature = Base64.urlsafe_encode(OpenSSL::HMAC.digest(:sha256, key, encoded_payload), false)
+      return if !Crypto::Subtle.constant_time_compare(encoded_signature, expected_encoded_signature)
+
+      # Validate payload
+      encoded_exp = Bytes.new(encoded_payload.to_unsafe + USER_ID_LENGTH, 11)
+      exp = IO::ByteFormat::NetworkEndian.decode(Int64, Base64.decode(encoded_exp))
+      return if exp < Time.utc.to_unix
+
+      String.new(token, USER_ID_LENGTH)
     end
   end
 end
