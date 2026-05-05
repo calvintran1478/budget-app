@@ -23,13 +23,14 @@ struct Repositories::UserRepository
   # ```
   # user_repository.create("user@email.com", "hashed_password", "first_name", "last_name")
   # ```
-  def create(email : String?, password : Crypto::Bcrypt::Password?, first_name : String, last_name : String, Sub : String?) : UUID
+  def create(email : String?, password : Crypto::Bcrypt::Password?, first_name : String, last_name : String, sub : String?) : UUID?
 
     if (sub.nil? && !password.nil? && !email.nil?) || (!sub.nil? && password.nil? && email.nil?)
       user_id = UUID.v4()
-      @db.exec "INSERT INTO users (user_id, email, password, first_name, last_name, sub) VALUES ($1, $2, $3, $4, $5, $6)", user_id, email, password, first_name, last_name
+      @db.exec "INSERT INTO users (user_id, email, password, first_name, last_name, sub) VALUES ($1, $2, $3, $4, $5, $6)", user_id, email, password, first_name, last_name, sub
     else
-      return ""
+      return 
+    end
 
     user_id
   end
@@ -51,7 +52,7 @@ struct Repositories::UserRepository
   # ```
   # user_repository.get_login_password("user@email.com") # => "user_id", "hashed_password"
   # ```
-  def get_uid(sub : String) : string
+  def get_uid(sub : String) : String
     user_id = @db.query_one "SELECT user_id FROM users WHERE sub=$1", sub, as: UUID
   rescue DB::NoResultsError
     return "", ""

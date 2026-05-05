@@ -102,9 +102,9 @@ struct Controllers::UserController
   #
   # Method: POST
   # Path: /api/v1/users/login
-  def google_login(context : HTTP::Server::Context, auth_code: String) : nil
+  def google_login(context : HTTP::Server::Context, auth_code : String) : Nil
 
-    token = client.get_access_token_using_authorization_code(code)
+    token = client.get_access_token_using_authorization_code(auth_code)
 
     parts = token.extra["id_token"].split(".")
     padded = parts[1] + "=" * ((4 - parts[1].size % 4) % 4)
@@ -129,7 +129,6 @@ struct Controllers::UserController
     context.response.content_type = "text/plain"
     context.response.status = HTTP::Status::OK
     access_claims.encode(@API_SECRET, context.response.output)
-
   end
 
 end
