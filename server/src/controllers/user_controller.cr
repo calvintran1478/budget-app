@@ -1,15 +1,21 @@
 require "http/server"
 require "../repositories/user_repository"
 require "../schemas/user_schemas"
+require "../utils/token"
 
 # Controller for handling requests made to the user resource
 struct Controllers::UserController
   include Schemas::UserSchemas
 
+  @ACCESS_TOKEN_LIFESPAN : Int32
+  @API_SECRET : String
   @BCRYPT_COST : Int32
 
   def initialize(@user_repository : Repositories::UserRepository)
     @prefix_length = "/api/v1/users".size
+
+    @ACCESS_TOKEN_LIFESPAN = ENV["ACCESS_TOKEN_MINUTE_LIFESPAN"].to_i * 60
+    @API_SECRET = ENV["API_SECRET"]
     @BCRYPT_COST = ENV["BCRYPT_COST"].to_i
   end
 
@@ -22,6 +28,8 @@ struct Controllers::UserController
     case {context.request.method, path}
     when {"POST", "".to_slice}
       register_user(context)
+    when {"POST", "/login".to_slice}
+      login_user(context)
     end
   end
 
@@ -51,5 +59,40 @@ struct Controllers::UserController
     context.response.content_type = "text/plain"
     context.response.status = HTTP::Status::CREATED
     context.response.output << RegisterResponse.new(data.email, data.first_name, data.last_name)
+  end
+
+  # Logs in the user by providing an access token they can use to authenticate
+  # on protected endpoints.
+  #
+  # Method: POST
+  # Path: /api/v1/users/login
+  def login_user(context : HTTP::Server::Context) : Nil
+    # Validate user input
+    data = LoginRequest.from_context(context)
+    return if data.nil?
+
+    # Look up user in database
+    user_id, password_hash = @user_repository.get_login_password(data.email)
+    if user_id.nil?
+      context.response.status = HTTP::Status::NOT_FOUND
+      context.response.output << "User with email not found"
+      return
+    end
+
+    # Verify user password
+    password = Crypto::Bcrypt::Password.new(password_hash)
+    unless password.verify(data.password)
+      context.response.status = HTTP::Status::UNAUTHORIZED
+      context.response.output << "Incorrect password"
+      return
+    end
+
+    # Generate access token
+    access_claims = Utils::Token::AccessClaims.new(user_id, Time.utc.to_unix + @ACCESS_TOKEN_LIFESPAN)
+
+    # Send access token
+    context.response.content_type = "text/plain"
+    context.response.status = HTTP::Status::OK
+    access_claims.encode(@API_SECRET, context.response.output)
   end
 end

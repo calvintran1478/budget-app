@@ -106,4 +106,48 @@ module Schemas::UserSchemas
       io << @email << '\n' << @first_name << '\n' << @last_name
     end
   end
+
+  # Request body schema for POST requests sent to /api/v1/users/login
+  struct LoginRequest
+    getter email : String
+    getter password : String
+
+    def initialize(@email : String, @password : String)
+    end
+
+    def LoginRequest.from_context(context : HTTP::Server::Context) : (LoginRequest | Nil)
+      # Get request body
+      if context.request.body.nil?
+        context.response.status = HTTP::Status::BAD_REQUEST
+        return
+      end
+      request_body = context.request.body.as(IO)
+
+      # Parse and validate email
+      email = request_body.gets('\n', MAX_EMAIL_LENGTH + 1, chomp: true)
+      if email.nil?
+        context.response.status = HTTP::Status::BAD_REQUEST
+        context.response.output << "Email required"
+        return
+      elsif !Valid.email?(email)
+        context.response.status = HTTP::Status::BAD_REQUEST
+        context.response.output << "Invalid email"
+        return
+      end
+
+      # Parse and validate password
+      password = request_body.gets('\n', MAX_PASSWORD_LENGTH + 1, chomp: true)
+      if password.nil?
+        context.response.status = HTTP::Status::BAD_REQUEST
+        context.response.output << "Password required"
+        return
+      elsif password.size > MAX_PASSWORD_LENGTH
+        context.response.status = HTTP::Status::BAD_REQUEST
+        context.response.output << "Password cannot exceed 71 characters"
+        return
+      end
+
+      LoginRequest.new(email, password)
+    end
+  end
 end
