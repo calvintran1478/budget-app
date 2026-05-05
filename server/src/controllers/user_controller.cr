@@ -2,6 +2,7 @@ require "http/server"
 require "../repositories/user_repository"
 require "../schemas/user_schemas"
 require "../utils/token"
+require "oauth2"
 
 # Controller for handling requests made to the user resource
 struct Controllers::UserController
@@ -53,7 +54,7 @@ struct Controllers::UserController
     hashed_password = Crypto::Bcrypt::Password.create(data.password, @BCRYPT_COST)
 
     # Register user into the database
-    @user_repository.create(data.email, hashed_password, data.first_name, data.last_name)
+    @user_repository.create(data.email, hashed_password, data.first_name, data.last_name, nil)
 
     # Send success response
     context.response.content_type = "text/plain"
@@ -95,4 +96,40 @@ struct Controllers::UserController
     context.response.status = HTTP::Status::OK
     access_claims.encode(@API_SECRET, context.response.output)
   end
+
+  # Logs in the user with their google auth code, provides an access token
+  # they can use to authenticate on protected endpoints.
+  #
+  # Method: POST
+  # Path: /api/v1/users/login
+  def google_login(context : HTTP::Server::Context, auth_code: String) : nil
+
+    token = client.get_access_token_using_authorization_code(code)
+
+    parts = token.extra["id_token"].split(".")
+    padded = parts[1] + "=" * ((4 - parts[1].size % 4) % 4)
+    payload = JSON.parse(Base64.decode_string(padded))
+    
+    sub = payload["sub"].as_s
+
+    # get uid 
+    user_id = @user_repository.get_uid(sub)
+
+    # create account if uid is nil
+    if user_id.nil?
+      first_name = payload["given_name"]?.try(&.as_s)
+      last_name = payload["family_name"]?.try(&.as_s) 
+      user_id = @user_repository.create(nil, nil, first_name, last_name, sub)
+    end
+
+    # Generate access token
+    access_claims = Utils::Token::AccessClaims.new(user_id, Time.utc.to_unix + @ACCESS_TOKEN_LIFESPAN)
+
+    # Send access token
+    context.response.content_type = "text/plain"
+    context.response.status = HTTP::Status::OK
+    access_claims.encode(@API_SECRET, context.response.output)
+
+  end
+
 end
