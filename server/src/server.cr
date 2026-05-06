@@ -4,7 +4,10 @@ require "db"
 require "pg"
 require "./utils/env"
 require "./controllers/user_controller"
+require "./controllers/transaction_controller"
 require "./repositories/user_repository"
+require "./repositories/transaction_repository"
+require "./middleware/auth_middleware"
 
 # Read CLI arguments
 case ARGV.size
@@ -23,16 +26,30 @@ Utils::Env.load_env() if host == "127.0.0.1"
 # Connect to database
 db = DB.open(ENV["DB_CONN"])
 
+# Initialize middleware
+auth_middleware = Middleware::AuthMiddleware.new(ENV["API_SECRET"])
+
 # Initialize repositories
 user_repository = Repositories::UserRepository.new(db)
+transaction_repository = Repositories::TransactionRepository.new(db)
 
 # Initialize resource controllers
 user_controller = Controllers::UserController.new(user_repository)
+transaction_controller = Controllers::TransactionController.new(transaction_repository, auth_middleware)
 
 # Define server handling of requests
 server = HTTP::Server.new do |context|
   if context.request.resource.starts_with?("/api/v1/users")
-    user_controller.handle_request(context)
+    # Increment path pointer
+    path_ptr = context.request.resource.to_unsafe + "/api/v1/users".size
+    path_ptr_byte_count = context.request.resource.size - "/api/v1/users".size
+
+    # Match resource path
+    if path_ptr_byte_count >= "/transactions".bytesize && path_ptr.memcmp("/transactions".to_unsafe, "/transactions".bytesize) == 0
+      transaction_controller.handle_request(context)
+    else
+      user_controller.handle_request(context)
+    end
   end
 end
 

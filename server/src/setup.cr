@@ -19,4 +19,22 @@ DB.connect ENV["DB_CONN"] do |db|
       );
     SQL
   )
+
+  # Create transaction table
+  db.exec(
+    <<-SQL
+      CREATE TABLE IF NOT EXISTS transactions (
+        transaction_id VARCHAR PRIMARY KEY,
+        name VARCHAR NOT NULL,
+        category VARCHAR NOT NULL,
+        amount INTEGER NOT NULL,
+        currency VARCHAR CHECK (currency in ('CAD', 'USD')),
+        date DATE NOT NULL DEFAULT NOW(),
+        user_id UUID,
+        CONSTRAINT transactions_user_id_fkey FOREIGN KEY(user_id) REFERENCES users(user_id)
+          ON DELETE CASCADE
+          ON UPDATE CASCADE
+      )
+    SQL
+  )
 end
