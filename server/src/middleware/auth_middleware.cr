@@ -1,7 +1,9 @@
+require "../utils/str"
 
 # Middleware for authenticating user requests made to a protected endpoint
 class Middleware::AuthMiddleware
   EXPECTED_AUTH_HEADER_SIZE = 97
+  USER_ID_LENGTH = 36
 
   def initialize(@API_SECRET : String)
   end
@@ -14,7 +16,7 @@ class Middleware::AuthMiddleware
   # ```
   # user_id = @auth_middleware.get_user(context)
   # ```
-  def get_user(context : HTTP::Server::Context) : (String | Nil)
+  def get_user(context : HTTP::Server::Context, user_id_buffer : UInt8*) : (String | Nil)
     # Check that the authorization header is included
     auth_header = context.request.headers["Authorization"]?
     if auth_header.nil? || auth_header.size != EXPECTED_AUTH_HEADER_SIZE
@@ -29,12 +31,12 @@ class Middleware::AuthMiddleware
     end
 
     # Parse access token and get user id
-    user_id = Utils::Token::AccessClaims.decode(auth_header.to_unsafe + 7, @API_SECRET)
-    if user_id.nil?
+    access_token_ptr = auth_header.to_unsafe + 7
+    if Utils::Token::AccessClaims.decode(access_token_ptr, @API_SECRET).nil?
       context.response.status = HTTP::Status::UNAUTHORIZED
       return
     end
 
-    user_id
+    Utils::Str.stringify(access_token_ptr, user_id_buffer, USER_ID_LENGTH)
   end
 end

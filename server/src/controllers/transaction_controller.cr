@@ -4,6 +4,7 @@ struct Controllers::TransactionController
   include Schemas::TransactionSchemas
 
   ADD_TRANSACTION_REQUEST_BUFFER_SIZE = 247 # MAX_ADD_TRANSACTION_REQUEST_BODY_SIZE + 1
+  USER_ID_STRING_LENGTH = 49
 
   def initialize(@transaction_repository : Repositories::TransactionRepository, @auth_middleware : Middleware::AuthMiddleware)
     @prefix_length = "/api/v1/users/transactions".size
@@ -26,7 +27,8 @@ struct Controllers::TransactionController
   # Path: /api/v1/users/transactions
   def add_transaction(context : HTTP::Server::Context) : Nil
     # Get user
-    user_id = @auth_middleware.get_user(context)
+    user_id_buffer = uninitialized UInt8[USER_ID_STRING_LENGTH]
+    user_id = @auth_middleware.get_user(context, user_id_buffer.to_unsafe)
     return if user_id.nil?
 
     # Validate user input
