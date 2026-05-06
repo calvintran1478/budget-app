@@ -45,7 +45,7 @@ module Schemas::TransactionSchemas
       end
 
       # Read currency
-      currency_index = IO::ByteFormat::NetworkEndian.decode(UInt8, Bytes.new(add_transaction_request_buffer + 4, 1))
+      currency_index = add_transaction_request_buffer[4]
       if currency_index >= 2
         context.response.status = HTTP::Status::BAD_REQUEST
         context.response.output << "The provided currency is not supported"
