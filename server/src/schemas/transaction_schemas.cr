@@ -32,7 +32,7 @@ module Schemas::TransactionSchemas
       bytesize = Utils::Buffer.read_io_to_buffer(request_body, add_transaction_request_buffer, ADD_TRANSACTION_REQUEST_BUFFER_SIZE)
       if bytesize < MIN_ADD_TRANSACTION_REQUEST_BODY_SIZE || bytesize > MAX_ADD_TRANSACTION_REQUEST_BODY_SIZE
         context.response.status = HTTP::Status::BAD_REQUEST
-        context.response.output << "Payload must be between 8 and 245 bytes"
+        context.response.output << "Payload must be between 8 and 246 bytes"
         return
       end
 
