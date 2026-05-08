@@ -1,3 +1,4 @@
+require "json"
 require "../utils/buffer"
 
 module Schemas::TransactionSchemas
@@ -11,6 +12,7 @@ module Schemas::TransactionSchemas
 
   CURRENCIES = StaticArray["CAD", "USD"]
 
+  # Request body schema for POST requests sent to /api/v1/users/transactions
   struct AddTransactionRequest
     getter name : String
     getter category : String
@@ -88,6 +90,80 @@ module Schemas::TransactionSchemas
       category = String.new(newline_ptr + 1, category_length)
 
       AddTransactionRequest.new(name, category, amount, currency)
+    end
+  end
+
+  # Request body schema for PATCH requests sent to /api/v1/users/transactions/{transcation_id}
+  struct UpdateTransactionRequest
+    include JSON::Serializable
+
+    getter name : (String | Nil)
+    getter category : (String | Nil)
+    getter amount : (Int32 | Nil)
+    getter currency : (String | Nil)
+
+    @[JSON::Field(converter: Time::Format.new("%Y-%m-%d"))]
+    getter date : (Time | Nil)
+
+    def initialize(@name : String?, @category : String?, @amount : Int32?, @currency : Int32?)
+    end
+
+    def UpdateTransactionRequest.from_context(context : HTTP::Server::Context) : (UpdateTransactionRequest | Nil)
+      # Get request body
+      if context.request.body.nil?
+        context.response.status = HTTP::Status::BAD_REQUEST
+        return
+      end
+      request_body = context.request.body.as(IO)
+
+      # Parse JSON
+      begin
+        data = UpdateTransactionRequest.from_json(request_body)
+      rescue JSON::ParseException | Time::Format::Error
+        context.response.status = HTTP::Status::BAD_REQUEST
+        return
+      end
+
+      # Validate request body
+      unless data.name.nil?
+        name = data.name.as(String)
+        if name.size == 0
+          context.response.status = HTTP::Status::BAD_REQUEST
+          context.response.output << "Name cannot be empty"
+          return
+        elsif name.size > MAX_NAME_SIZE
+          context.response.status = HTTP::Status::BAD_REQUEST
+          context.response.output << "Name can be at most 120 characters"
+          return
+        end
+      end
+
+      unless data.category.nil?
+        category = data.category.as(String)
+        if category.size == 0
+          context.response.status = HTTP::Status::BAD_REQUEST
+          context.response.output << "Category cannot be empty"
+          return
+        elsif category.size > MAX_CATEGORY_SIZE
+          context.response.status = HTTP::Status::BAD_REQUEST
+          context.response.output << "Category can be at most 120 characters"
+          return
+        end
+      end
+
+      if !data.amount.nil? && data.amount.as(Int32) <= 0
+        context.response.status = HTTP::Status::BAD_REQUEST
+        context.response.output << "Amount must be positive"
+        return
+      end
+
+      if !data.currency.nil? && !CURRENCIES.includes?(data.currency)
+        context.response.status = HTTP::Status::BAD_REQUEST
+        context.response.output << "The provided currency is not supported"
+        return
+      end
+
+      data
     end
   end
 end
