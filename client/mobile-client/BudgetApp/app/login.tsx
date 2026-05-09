@@ -1,6 +1,8 @@
 import { View, StyleSheet, Text, TextInput, Button } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
+import { Platform } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 
 export default function Login() {
@@ -8,6 +10,8 @@ export default function Login() {
   const [password, setPassword] = useState("");
 
   const router = useRouter();
+
+  const isWeb = Platform.OS === "web";
 
   const handleLogin = async () => {
     const response = await fetch("https://server-still-raindrop-7342.fly.dev/api/v1/users/login", {
@@ -17,7 +21,12 @@ export default function Login() {
 
     if (response.ok) {
       const accessToken = await response.text();
-      await SecureStore.setItemAsync("accessToken", accessToken);
+      if (isWeb) {
+        await AsyncStorage.setItem("accessToken", accessToken);
+      } else {
+        await SecureStore.setItemAsync("accessToken", accessToken);
+      }
+ 
       router.replace("/");
     } else {
       console.log(await response.text());
