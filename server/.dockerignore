@@ -1,0 +1,58 @@
+# flyctl launch added from .gitignore
+**/lib
+**/.env
+
+# flyctl launch added from lib/db/.gitignore
+lib/db/docs
+lib/db/lib
+lib/db/bin
+lib/db/.shards
+lib/db/**/*.dwarf
+
+# Libraries don't need dependency lock
+# Dependencies will be locked in application that uses them
+lib/db/shard.lock
+
+
+# flyctl launch added from lib/pg/.gitignore
+lib/pg/**/.crystal
+lib/pg/**/.shards
+lib/pg/**/shard.lock
+lib/pg/**/lib
+lib/pg/**/tmp
+lib/pg/**/test*.cr
+lib/pg/**/spec/.run_auth_specs
+lib/pg/**/.cert
+lib/pg/**/.envrc
+lib/pg/**/result
+lib/pg/**/.direnv
+
+# flyctl launch added from lib/prop/.gitignore
+lib/prop/local
+lib/prop/.local
+lib/prop/~
+lib/prop/home
+
+# /docs/
+lib/prop/lib
+lib/prop/bin
+lib/prop/.shards
+lib/prop/**/*.dwarf
+
+lib/prop/shard.lock
+
+# flyctl launch added from lib/validator/.gitignore
+lib/validator/.local
+lib/validator/~
+lib/validator/home
+
+# /docs/
+lib/validator/lib
+lib/validator/bin
+lib/validator/.shards
+lib/validator/**/*.dwarf
+
+# Libraries don't need dependency lock
+# Dependencies will be locked in applications that use them
+lib/validator/shard.lock
+fly.toml
