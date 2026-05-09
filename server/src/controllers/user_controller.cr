@@ -57,9 +57,7 @@ struct Controllers::UserController
     @user_repository.create(data.email, hashed_password, data.first_name, data.last_name, nil)
 
     # Send success response
-    context.response.content_type = "text/plain"
     context.response.status = HTTP::Status::CREATED
-    context.response.output << RegisterResponse.new(data.email, data.first_name, data.last_name)
   end
 
   # Logs in the user by providing an access token they can use to authenticate

@@ -97,16 +97,6 @@ module Schemas::UserSchemas
     end
   end
 
-  # Response body schema for server responses to /api/v1/users POSt requests.
-  struct RegisterResponse
-    def initialize(@email : String, @first_name : String, @last_name : String)
-    end
-
-    def to_s(io : IO) : Nil
-      io << @email << '\n' << @first_name << '\n' << @last_name
-    end
-  end
-
   # Request body schema for POST requests sent to /api/v1/users/login
   struct LoginRequest
     getter email : String
