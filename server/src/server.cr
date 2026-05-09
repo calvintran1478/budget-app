@@ -43,6 +43,10 @@ server = HTTP::Server.new do |context|
   context.response.headers["Access-Control-Allow-Origin"] = "http://localhost:8081"
   context.response.headers["Access-Control-Allow-Methods"] = "POST,GET,PATCH,DELETE"
   context.response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+  if context.request.method == "OPTIONS"
+    context.response.status = HTTP::Status::OK
+    next
+  end
 
   if context.request.resource.starts_with?("/api/v1/users")
     # Increment path pointer
