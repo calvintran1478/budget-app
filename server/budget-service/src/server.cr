@@ -49,16 +49,9 @@ server = HTTP::Server.new do |context|
   end
 
   if context.request.resource.starts_with?("/api/v1/users")
-    # Increment path pointer
-    path_ptr = context.request.resource.to_unsafe + "/api/v1/users".size
-    path_ptr_byte_count = context.request.resource.size - "/api/v1/users".size
-
-    # Match resource path
-    if path_ptr_byte_count >= "/transactions".bytesize && path_ptr.memcmp("/transactions".to_unsafe, "/transactions".bytesize) == 0
-      transaction_controller.handle_request(context)
-    else
-      user_controller.handle_request(context)
-    end
+    user_controller.handle_request(context)
+  elsif context.request.resource.starts_with?("/api/v1/transactions")
+    transaction_controller.handle_request(context)
   else
     context.response.status = HTTP::Status::NOT_FOUND
   end

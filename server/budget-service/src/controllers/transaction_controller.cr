@@ -8,7 +8,7 @@ struct Controllers::TransactionController
   TRANSACTION_ID_LENGTH = 22
 
   def initialize(@transaction_repository : Repositories::TransactionRepository, @auth_middleware : Middleware::AuthMiddleware)
-    @prefix_length = "/api/v1/users/transactions".size
+    @prefix_length = "/api/v1/transactions".size
   end
 
   def handle_request(context : HTTP::Server::Context) : Nil
@@ -41,7 +41,7 @@ struct Controllers::TransactionController
   # Adds a transaction for the user.
   #
   # Method: POST
-  # Path: /api/v1/users/transactions
+  # Path: /api/v1/transactions
   def add_transaction(context : HTTP::Server::Context) : Nil
     # Get user
     user_id_buffer = uninitialized UInt8[USER_ID_STRING_LENGTH]
@@ -65,7 +65,7 @@ struct Controllers::TransactionController
   # Retreives transactions for the user.
   #
   # Method: GET
-  # Path: /api/v1/users/transactions
+  # Path: /api/v1/transactions
   def get_transactions(context : HTTP::Server::Context) : Nil
     # Get user
     user_id_buffer = uninitialized UInt8[USER_ID_STRING_LENGTH]
@@ -81,7 +81,7 @@ struct Controllers::TransactionController
   # Updates a transaction for the user.
   #
   # Method: PATCH
-  # Path: /api/v1/users/transactions/{transaction_id}
+  # Path: /api/v1/transactions/{transaction_id}
   def update_transcation(context : HTTP::Server::Context, transaction_id : String) : Nil
     # Get user
     user_id_buffer = uninitialized UInt8[USER_ID_STRING_LENGTH]
@@ -106,7 +106,7 @@ struct Controllers::TransactionController
   # Deletes a transaction for the user.
   #
   # Method: Delete
-  # Path: /api/v1/users/transactions/{transaction_id}
+  # Path: /api/v1/transactions/{transaction_id}
   def delete_transaction(context : HTTP::Server::Context, transaction_id : String) : Nil
     # Get user
     user_id_buffer = uninitialized UInt8[USER_ID_STRING_LENGTH]

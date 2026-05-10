@@ -35,7 +35,7 @@ export default function Transactions() {
     combinedBuffer.set(categoryBytes, 6 + name.length);
 
     const token = isWeb ? (await AsyncStorage.getItem("accessToken")) : (await SecureStore.getItemAsync("accessToken"));
-    const response = await fetch("https://server-still-raindrop-7342.fly.dev/api/v1/users/transactions", {
+    const response = await fetch("https://server-still-raindrop-7342.fly.dev/api/v1/transactions", {
       method: "POST",
       headers: { "Authorization": `Bearer ${token}` },
       body: combinedBuffer.buffer
@@ -59,7 +59,7 @@ export default function Transactions() {
 
   const getTransactions = async () => {
     const token = isWeb ? (await AsyncStorage.getItem("accessToken")) : (await SecureStore.getItemAsync("accessToken"));
-    const response = await fetch("https://server-still-raindrop-7342.fly.dev/api/v1/users/transactions", {
+    const response = await fetch("https://server-still-raindrop-7342.fly.dev/api/v1/transactions", {
       headers: { "Authorization": `Bearer ${token}` }
     });
 
