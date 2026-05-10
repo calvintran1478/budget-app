@@ -15,7 +15,8 @@ DB.connect ENV["DB_CONN"] do |db|
         email VARCHAR UNIQUE NOT NULL,
         password VARCHAR NOT NULL,
         first_name VARCHAR NOT NULL,
-        last_name VARCHAR NOT NULL
+        last_name VARCHAR NOT NULL,
+        sub VARCHAR
       );
     SQL
   )
