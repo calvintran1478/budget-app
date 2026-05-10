@@ -1,0 +1,7 @@
+# flyctl launch added from .gitignore
+**/__pycache__
+
+# flyctl launch added from falcon-env/.gitignore
+# Created by venv; see https://docs.python.org/3/library/venv.html
+falcon-env/**/*
+fly.toml
