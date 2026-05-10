@@ -40,14 +40,19 @@ transaction_controller = Controllers::TransactionController.new(transaction_repo
 # Define server handling of requests
 server = HTTP::Server.new do |context|
   # Handle CORS
-  context.response.headers["Access-Control-Allow-Origin"] = "http://localhost:8081"
-  context.response.headers["Access-Control-Allow-Methods"] = "POST,GET,PATCH,DELETE"
-  context.response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+  origin = context.request.headers["Origin"]
+  if {"http://localhost:8081","http://localhost:5173"}.includes?(origin)
+    context.response.headers["Access-Control-Allow-Origin"] = origin
+    context.response.headers["Access-Control-Allow-Methods"] = "POST,GET,PATCH,DELETE"
+    context.response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+    context.response.headers["Access-Control-Allow-Credentials"] = "true"
+  end
   if context.request.method == "OPTIONS"
     context.response.status = HTTP::Status::OK
     next
   end
 
+  # Match resource path
   if context.request.resource.starts_with?("/api/v1/users")
     user_controller.handle_request(context)
   elsif context.request.resource.starts_with?("/api/v1/transactions")
