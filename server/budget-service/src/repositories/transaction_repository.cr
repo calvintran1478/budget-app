@@ -22,8 +22,8 @@ struct Repositories::TransactionRepository
   # ```
   # transaction_repository.list(user_id, context.response.output)
   # ```
-  def list(user_id : String, output : IO) : Nil
-    @db.query("SELECT transaction_id, date, amount, name, category, currency FROM transactions WHERE user_id=$1", user_id) do |rs|
+  def list(user_id : String, start_time : Time, end_time : Time, output : IO) : Nil
+    @db.query("SELECT transaction_id, date, amount, name, category, currency FROM transactions WHERE user_id=$1 AND date BETWEEN $2 AND $3 ORDER BY date DESC", user_id, start_time, end_time) do |rs|
       rs.each do
         # Read row values
         transaction_id = rs.read(String)
