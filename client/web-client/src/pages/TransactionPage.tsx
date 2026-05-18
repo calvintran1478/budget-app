@@ -64,10 +64,8 @@ const TransactionPage = () => {
                 index += 1 + categoryLength;
 
                 // Decode currency
-                const currencyLength = view.getUint8(index);
-                const currencyBytes = new Uint8Array(buffer, index + 1, currencyLength);
-                const currency = decoder.decode(currencyBytes);
-                index += 1 + currencyLength;
+                const currencyIndex = view.getUint8(index);
+                index += 1;
 
                 // Add transaction
                 transactions.push({
@@ -76,7 +74,7 @@ const TransactionPage = () => {
                     "amount": amount,
                     "name": name,
                     "category": category,
-                    "currency": currency
+                    "currency": currencies[currencyIndex]
                 });
             }
 

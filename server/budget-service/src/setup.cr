@@ -29,7 +29,7 @@ DB.connect ENV["DB_CONN"] do |db|
         name VARCHAR NOT NULL,
         category VARCHAR NOT NULL,
         amount INTEGER NOT NULL,
-        currency VARCHAR CHECK (currency in ('CAD', 'USD')),
+        currency_index INTEGER NOT NULL,
         date DATE NOT NULL DEFAULT NOW(),
         user_id UUID,
         CONSTRAINT transactions_user_id_fkey FOREIGN KEY(user_id) REFERENCES users(user_id)

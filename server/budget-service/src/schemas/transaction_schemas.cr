@@ -17,9 +17,9 @@ module Schemas::TransactionSchemas
     getter name : String
     getter category : String
     getter amount : Int32
-    getter currency : String
+    getter currency_index : Int32
 
-    def initialize(@name : String, @category : String, @amount : Int32, @currency : String)
+    def initialize(@name : String, @category : String, @amount : Int32, @currency_index : Int32)
     end
 
     def AddTransactionRequest.from_context(context : HTTP::Server::Context, add_transaction_request_buffer : UInt8*) : (AddTransactionRequest | Nil)
@@ -53,7 +53,6 @@ module Schemas::TransactionSchemas
         context.response.output << "The provided currency is not supported"
         return
       end
-      currency = CURRENCIES[currency_index]
 
       # Search for newline character separating name and category
       newline_ptr = LibC.memchr(add_transaction_request_buffer + 5, '\n'.ord.to_u8, bytesize - 5).as(UInt8*)
@@ -89,7 +88,7 @@ module Schemas::TransactionSchemas
       end
       category = String.new(newline_ptr + 1, category_length)
 
-      AddTransactionRequest.new(name, category, amount, currency)
+      AddTransactionRequest.new(name, category, amount, currency_index)
     end
   end
 
@@ -100,12 +99,12 @@ module Schemas::TransactionSchemas
     getter name : (String | Nil)
     getter category : (String | Nil)
     getter amount : (Int32 | Nil)
-    getter currency : (String | Nil)
+    getter currency_index : (Int32 | Nil)
 
     @[JSON::Field(converter: Time::Format.new("%Y-%m-%d"))]
     getter date : (Time | Nil)
 
-    def initialize(@name : String?, @category : String?, @amount : Int32?, @currency : Int32?)
+    def initialize(@name : String?, @category : String?, @amount : Int32?, @currency_index : Int32?)
     end
 
     def UpdateTransactionRequest.from_context(context : HTTP::Server::Context) : (UpdateTransactionRequest | Nil)
@@ -157,7 +156,7 @@ module Schemas::TransactionSchemas
         return
       end
 
-      if !data.currency.nil? && !CURRENCIES.includes?(data.currency)
+      if !data.currency_index.nil? && data.currency_index.as(Int32) >= 2
         context.response.status = HTTP::Status::BAD_REQUEST
         context.response.output << "The provided currency is not supported"
         return
