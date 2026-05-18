@@ -6,5 +6,7 @@ dependencies:
     github: nicolab/crystal-validator
   pg:
     github: will/crystal-pg
+  redis:
+    github: stefanwille/crystal-redis
 
 license: MIT

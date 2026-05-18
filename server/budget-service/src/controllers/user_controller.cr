@@ -11,13 +11,15 @@ struct Controllers::UserController
   @ACCESS_TOKEN_LIFESPAN : Int32
   @API_SECRET : String
   @BCRYPT_COST : Int32
+  @REFRESH_TOKEN_LIFESPAN : Int32
 
-  def initialize(@user_repository : Repositories::UserRepository)
+  def initialize(@user_repository : Repositories::UserRepository, @auth_db : Redis::PooledClient)
     @prefix_length = "/api/v1/users".size
 
     @ACCESS_TOKEN_LIFESPAN = ENV["ACCESS_TOKEN_MINUTE_LIFESPAN"].to_i * 60
     @API_SECRET = ENV["API_SECRET"]
     @BCRYPT_COST = ENV["BCRYPT_COST"].to_i
+    @REFRESH_TOKEN_LIFESPAN = ENV["REFRESH_TOKEN_HOUR_LIFESPAN"].to_i * 3600
   end
 
   # Handles requests made to the /api/v1/users route by directing it to the correct handler
@@ -31,6 +33,8 @@ struct Controllers::UserController
       register_user(context)
     when {"POST", "/login".to_slice}
       login_user(context)
+    when {"GET", "/token".to_slice}
+      refresh_token(context)
     end
   end
 
@@ -86,8 +90,79 @@ struct Controllers::UserController
       return
     end
 
-    # Generate access token
+    # Start token family
+    token_family_id = UUID.v4().to_s
+    @auth_db.set(token_family_id, 1, ex: @REFRESH_TOKEN_LIFESPAN)
+
+    # Generate access token and refresh token pair
     access_claims = Utils::Token::AccessClaims.new(user_id, Time.utc.to_unix + @ACCESS_TOKEN_LIFESPAN)
+    refresh_claims = Utils::Token::RefreshClaims.new(user_id, token_family_id, 1, Time.utc.to_unix + @REFRESH_TOKEN_LIFESPAN)
+
+    # Set http-only cookie containing refresh token
+    context.response.cookies << HTTP::Cookie.new(
+      name: "refresh-token",
+      value: refresh_claims.encode(@API_SECRET),
+      max_age: Time::Span.new(seconds: @REFRESH_TOKEN_LIFESPAN),
+      http_only: true,
+      secure: true,
+      samesite: HTTP::Cookie::SameSite::Strict
+    )
+
+    # Send access token
+    context.response.content_type = "text/plain"
+    context.response.status = HTTP::Status::OK
+    access_claims.encode(@API_SECRET, context.response.output)
+  end
+
+  # Returns a new refresh token access token pair the user can use to
+  # authenticate on protected endpoints. The user must have a valid refresh
+  # token cookie.
+  #
+  # Method: GET
+  # Path: /api/v1/users/token
+  def refresh_token(context : HTTP::Server::Context) : Nil
+    # Parse claims if token is not expired
+    cookie_header = context.request.headers["Cookie"]?
+    if cookie_header.nil? || !cookie_header.starts_with?("refresh-token=") || cookie_header.size != 146
+      context.response.status = HTTP::Status::UNAUTHORIZED
+      return
+    end
+    refresh_token_cookie = cookie_header.to_unsafe + "refresh-token=".size
+
+    # Decode payload
+    payload = Utils::Token::RefreshClaims.decode(refresh_token_cookie, @API_SECRET)
+    if payload.nil?
+      context.response.status = HTTP::Status::UNAUTHORIZED
+      return
+    end
+
+    # Validate sequence number
+    expected_sequence_number = @auth_db.get(payload.token_family_id)
+    if expected_sequence_number.nil?
+      context.response.status = HTTP::Status::UNAUTHORIZED
+      return
+    elsif payload.sequence_number != expected_sequence_number.to_i
+      @auth_db.del(payload.token_family_id)
+      context.response.status = HTTP::Status::UNAUTHORIZED
+      return
+    end
+
+    # Update sequence number to reflect new token in the token family
+    @auth_db.set(payload.token_family_id, payload.sequence_number + 1, ex: @REFRESH_TOKEN_LIFESPAN)
+
+    # Generate access token and refresh token pair
+    access_claims = Utils::Token::AccessClaims.new(payload.user_id, Time.utc.to_unix + @ACCESS_TOKEN_LIFESPAN)
+    refresh_claims = Utils::Token::RefreshClaims.new(payload.user_id, payload.token_family_id, payload.sequence_number + 1, Time.utc.to_unix + @REFRESH_TOKEN_LIFESPAN)
+
+    # Set http-only cookie containing refresh token
+    context.response.cookies << HTTP::Cookie.new(
+      name: "refresh-token",
+      value: refresh_claims.encode(@API_SECRET),
+      max_age: Time::Span.new(seconds: @REFRESH_TOKEN_LIFESPAN),
+      http_only: true,
+      secure: true,
+      samesite: HTTP::Cookie::SameSite::Strict
+    )
 
     # Send access token
     context.response.content_type = "text/plain"
@@ -128,5 +203,4 @@ struct Controllers::UserController
     context.response.status = HTTP::Status::OK
     access_claims.encode(@API_SECRET, context.response.output)
   end
-
 end

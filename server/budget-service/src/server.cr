@@ -2,6 +2,7 @@ require "http"
 require "http/server"
 require "db"
 require "pg"
+require "redis"
 require "./utils/env"
 require "./controllers/user_controller"
 require "./controllers/transaction_controller"
@@ -25,6 +26,7 @@ Utils::Env.load_env() if host == "127.0.0.1"
 
 # Connect to database
 db = DB.open(ENV["DB_CONN"])
+auth_db = Redis::PooledClient.new(url: ENV["AUTH_DB_CONN"])
 
 # Initialize middleware
 auth_middleware = Middleware::AuthMiddleware.new(ENV["API_SECRET"])
@@ -34,7 +36,7 @@ user_repository = Repositories::UserRepository.new(db)
 transaction_repository = Repositories::TransactionRepository.new(db)
 
 # Initialize resource controllers
-user_controller = Controllers::UserController.new(user_repository)
+user_controller = Controllers::UserController.new(user_repository, auth_db)
 transaction_controller = Controllers::TransactionController.new(transaction_repository, auth_middleware)
 
 # Define server handling of requests
