@@ -4,6 +4,7 @@ import { Router, Route } from "@solidjs/router";
 import "uno.css";
 
 const HomePage = lazy(() => import("./pages/HomePage"));
+const TransactionPage = lazy(() => import("./pages/TransactionPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 
@@ -25,6 +26,7 @@ render(
     () => (
         <Router root={(props) => <AuthProvider>{props.children}</AuthProvider>}>
             <Route path="/" component={HomePage}/>
+            <Route path="/transactions" component={TransactionPage}/>
             <Route path="/register" component={RegisterPage}/>
             <Route path="/login" component={LoginPage}/>
         </Router>
