@@ -5,21 +5,23 @@ import {useContext} from "solid-js";
 import type { Signal } from "solid-js";
 
 const AuthCallback = () => {
-  const navigate = useNavigate()
-  const [_, setToken] = useContext(AuthContext) as Signal<string>;
+    const navigate = useNavigate()
+    const [_, setToken] = useContext(AuthContext) as Signal<string>;
 
-  onMount(() => {
-    const params = new URLSearchParams(window.location.search)
-    const token = params.get("token")
-    if (token) {
-      setToken(token)
-      navigate("/")
-    } else {
-      console.log("hi")
-    }
-  })
-
-  return <p>Logging you in...</p>
+    onMount(async () => {
+        const res = await fetch("http://localhost:8080/api/v1/users/token", {
+        method: "POST",
+        credentials: "include" 
+        })
+        if (res.ok) {
+        setToken(await res.text())
+        navigate("/")
+        } else {
+        navigate("/login")
+        }
+    })
+  
+    return <p>Logging you in...</p>
 }
 
 export default AuthCallback

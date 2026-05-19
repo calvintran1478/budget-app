@@ -217,7 +217,7 @@ struct Controllers::UserController
           # Redirect to frontend with access token in query param
           access_token = access_claims.encode(@API_SECRET)
           context.response.status_code = 302
-          context.response.headers["Location"] = "http://localhost:5173/auth/callback?token=#{access_token}"
+          context.response.headers["Location"] = "http://localhost:5173/auth/callback"
         end
       end
     end
