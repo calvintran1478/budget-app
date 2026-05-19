@@ -54,6 +54,9 @@ const LoginPage = () => {
                     </div>
                     <button class="border-2 rounded px-10 py-2 mt-6 text-lg" disabled={loginLoading()}>Login</button>
                 </form>
+                <a href="http://localhost:8080/google-login">
+                    <button>Sign in with Google</button>
+                </a>
                 <Show when={loginError() !== ""}>
                     <div class="flex justify-center items-center border-2 p-4 m-6 w-96 h-12">
                         <p>{loginError()}</p>

@@ -121,21 +121,19 @@ struct Controllers::UserController
   # Method: GET
   # Path: /api/v1/users/token
   def refresh_token(context : HTTP::Server::Context) : Nil
-    # Parse claims if token is not expired
-    cookie_header = context.request.headers["Cookie"]?
-    if cookie_header.nil? || !cookie_header.starts_with?("refresh-token=") || cookie_header.size != 146
+    #Parse claims if token is not expired
+    refresh_token_cookie = context.request.cookies["refresh-token"]?
+    if refresh_token_cookie.nil? || refresh_token_cookie.value.size != 132
       context.response.status = HTTP::Status::UNAUTHORIZED
       return
     end
-    refresh_token_cookie = cookie_header.to_unsafe + "refresh-token=".size
 
     # Decode payload
-    payload = Utils::Token::RefreshClaims.decode(refresh_token_cookie, @API_SECRET)
+    payload = Utils::Token::RefreshClaims.decode(refresh_token_cookie.value.to_unsafe, @API_SECRET)
     if payload.nil?
       context.response.status = HTTP::Status::UNAUTHORIZED
       return
     end
-
     # Validate sequence number
     expected_sequence_number = @auth_db.get(payload.token_family_id)
     if expected_sequence_number.nil?
@@ -175,32 +173,42 @@ struct Controllers::UserController
   #
   # Method: POST
   # Path: /api/v1/users/login
-  def google_login(context : HTTP::Server::Context, auth_code : String) : Nil
+  def google_login(context : HTTP::Server::Context, token : OAuth2::AccessToken) : Nil
 
-    token = client.get_access_token_using_authorization_code(auth_code)
+    #token = client.get_access_token_using_authorization_code(auth_code)
+    if extra = token.extra
+      if id_token = extra["id_token"]?
+        parts = id_token.split(".")
+        padded = parts[1] + "=" * ((4 - parts[1].size % 4) % 4)
+        payload = JSON.parse(Base64.decode_string(padded))
+        
+        sub = payload["sub"].as_s
 
-    parts = token.extra["id_token"].split(".")
-    padded = parts[1] + "=" * ((4 - parts[1].size % 4) % 4)
-    payload = JSON.parse(Base64.decode_string(padded))
-    
-    sub = payload["sub"].as_s
-
-    # get uid 
-    user_id = @user_repository.get_uid(sub)
-
-    # create account if uid is nil
-    if user_id.nil?
-      first_name = payload["given_name"]?.try(&.as_s)
-      last_name = payload["family_name"]?.try(&.as_s) 
-      user_id = @user_repository.create(nil, nil, first_name, last_name, sub)
+        # get uid 
+        p 1
+        user_id = @user_repository.get_uid(sub)
+        p 2
+        # create account if uid is nil
+        if user_id == ""
+          first_name = payload["given_name"]?.try(&.as_s)
+          last_name = payload["family_name"]?.try(&.as_s) 
+          if first_name && last_name
+            user_id = @user_repository.create(nil, nil, first_name, last_name, sub)
+          end
+        end
+        p 3
+        # Generate access token
+        if user_id
+          p 4
+          access_claims = Utils::Token::AccessClaims.new(user_id.as(String), Time.utc.to_unix + @ACCESS_TOKEN_LIFESPAN)
+        
+          # Send access token
+          context.response.content_type = "text/plain"
+          context.response.status = HTTP::Status::OK
+          access_claims.encode(@API_SECRET, context.response.output)
+          p 5
+        end
+      end
     end
-
-    # Generate access token
-    access_claims = Utils::Token::AccessClaims.new(user_id, Time.utc.to_unix + @ACCESS_TOKEN_LIFESPAN)
-
-    # Send access token
-    context.response.content_type = "text/plain"
-    context.response.status = HTTP::Status::OK
-    access_claims.encode(@API_SECRET, context.response.output)
   end
 end
