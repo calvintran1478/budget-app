@@ -7,6 +7,7 @@ const HomePage = lazy(() => import("./pages/HomePage"));
 const TransactionPage = lazy(() => import("./pages/TransactionPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 
 export const budgetApiDomain = import.meta.env.PROD ? "https://server-still-raindrop-7342.fly.dev" : "http://localhost:8080";
 export const scanApiDomain = import.meta.env.PROD ? "https://scan-service.fly.dev" : "http://localhost:8000";
@@ -29,6 +30,7 @@ render(
             <Route path="/transactions" component={TransactionPage}/>
             <Route path="/register" component={RegisterPage}/>
             <Route path="/login" component={LoginPage}/>
+            <Route path="/auth/callback" component={AuthCallback} />
         </Router>
     ),
     document.getElementById("root")!

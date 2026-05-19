@@ -185,9 +185,7 @@ struct Controllers::UserController
         sub = payload["sub"].as_s
 
         # get uid 
-        p 1
         user_id = @user_repository.get_uid(sub)
-        p 2
         # create account if uid is nil
         if user_id == ""
           first_name = payload["given_name"]?.try(&.as_s)
@@ -196,17 +194,30 @@ struct Controllers::UserController
             user_id = @user_repository.create(nil, nil, first_name, last_name, sub)
           end
         end
-        p 3
         # Generate access token
         if user_id
-          p 4
+          # Start token family
+          token_family_id = UUID.v4().to_s
+          @auth_db.set(token_family_id, 1, ex: @REFRESH_TOKEN_LIFESPAN)
+
+          # Generate access and refresh tokens
           access_claims = Utils::Token::AccessClaims.new(user_id.as(String), Time.utc.to_unix + @ACCESS_TOKEN_LIFESPAN)
-        
-          # Send access token
-          context.response.content_type = "text/plain"
-          context.response.status = HTTP::Status::OK
-          access_claims.encode(@API_SECRET, context.response.output)
-          p 5
+          refresh_claims = Utils::Token::RefreshClaims.new(user_id.as(String), token_family_id, 1, Time.utc.to_unix + @REFRESH_TOKEN_LIFESPAN)
+
+          # Set refresh token cookie
+          context.response.cookies << HTTP::Cookie.new(
+            name: "refresh-token",
+            value: refresh_claims.encode(@API_SECRET),
+            max_age: Time::Span.new(seconds: @REFRESH_TOKEN_LIFESPAN),
+            http_only: true,
+            secure: true,
+            samesite: HTTP::Cookie::SameSite::Strict
+          )
+
+          # Redirect to frontend with access token in query param
+          access_token = access_claims.encode(@API_SECRET)
+          context.response.status_code = 302
+          context.response.headers["Location"] = "http://localhost:5173/auth/callback?token=#{access_token}"
         end
       end
     end

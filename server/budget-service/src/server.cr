@@ -21,6 +21,9 @@ else
   exit 1
 end
 
+# Load environment
+Utils::Env.load_env() if host == "127.0.0.1"
+
 # Create google auth client
 OAUTH_HOST = "google.com"
 CLIENT_ID     = ENV["GOOGLE_CLIENT_ID"]
@@ -33,9 +36,6 @@ client = OAuth2::Client.new(
   token_uri: "https://oauth2.googleapis.com/token", 
   redirect_uri: "http://localhost:8080/google-callback"
 )
-
-# Load environment
-Utils::Env.load_env() if host == "127.0.0.1"
 
 # Connect to database
 db = DB.open(ENV["DB_CONN"])
@@ -80,7 +80,6 @@ server = HTTP::Server.new do |context|
     context.response.status_code = 302
     context.response.headers["Location"] = authorize_url.to_s
   elsif context.request.path.starts_with?("/google-callback")
-    p "hi"
     code = context.request.query_params["code"]?
     if code.nil?
       context.response.status_code = 400
@@ -91,7 +90,6 @@ server = HTTP::Server.new do |context|
       context.response.status_code = 400
       token = client.get_access_token_using_authorization_code(code)
       if token
-        p "hi2"
         user_controller.google_login(context, token)
       end
     rescue ex

@@ -29,6 +29,15 @@ module Utils::Token
       io << Base64.urlsafe_encode(OpenSSL::HMAC.digest(:sha256, key, encoded_payload), false)
     end
 
+    # Creates an access token from self, which is signed using the provided key.
+    #
+    # The contents of the token are returned as a String.
+    def encode(key : String) : String
+      String.build do |io|
+        encode(key, io)
+      end
+    end
+
     # Parses the provided access token for its contents.
     #
     # Returns whether the provided token is valid.
