@@ -54,7 +54,8 @@ struct Repositories::UserRepository
   # ```
   def get_uid(sub : String) : String
     user_id = @db.query_one "SELECT user_id FROM users WHERE sub=$1", sub, as: UUID
+    return user_id.to_s
   rescue DB::NoResultsError
-    return "", ""
+    return ""
   end
 end
