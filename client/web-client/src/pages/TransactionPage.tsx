@@ -12,6 +12,8 @@ const TransactionPage = () => {
 
     const currencies = ["CAD", "USD"];
 
+    const currencyFormatter = new Intl.NumberFormat('en-US', {style: "currency", currency: "USD"});
+
     let addTransactionDialog!: HTMLDialogElement;
     let nameInput!: HTMLInputElement;
     let categoryInput!: HTMLSelectElement;
@@ -98,9 +100,9 @@ const TransactionPage = () => {
                 index += 22;
 
                 // Decode date
-                const dateBytes = new Uint8Array(buffer, index, 10);
+                const dateBytes = new Uint8Array(buffer, index, 12);
                 const dateString = decoder.decode(dateBytes);
-                index += 10;
+                index += 12;
 
                 // Decode amount
                 const amount = view.getInt32(index);
@@ -218,19 +220,19 @@ const TransactionPage = () => {
                     <Suspense>
                         <table class="w-9/10 border-x border-t">
                             <thead>
-                                <tr class="border-b">
-                                    <th class="text-left">Date</th>
-                                    <th class="text-left">Name</th>
+                                <tr class="border-b h-10">
+                                    <th class="text-left pl-2">Date</th>
+                                    <th class="text-left">Description</th>
                                     <th class="text-left">Amount</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <For each={transactions()}>
                                     {(transaction) => (
-                                        <tr class="border-b h-4">
-                                            <td>{transaction.date}</td>
+                                        <tr class="border-b h-10">
+                                            <td class="pl-2">{transaction.date}</td>
                                             <td>{transaction.name}</td>
-                                            <td>{transaction.amount}</td>
+                                            <td>{currencyFormatter.format(transaction.amount / 100)}</td>
                                         </tr>
                                     )}
                                 </For>

@@ -41,7 +41,7 @@ struct Repositories::TransactionRepository
 
         # Write row values to the provided IO
         output << transaction_id
-        date.to_s(output, "%Y-%m-%d")
+        date.to_s(output, "%b %d, %Y")
         IO::ByteFormat::NetworkEndian.encode(amount, output)
         output.write_byte(name.bytesize.to_u8)
         output << name
