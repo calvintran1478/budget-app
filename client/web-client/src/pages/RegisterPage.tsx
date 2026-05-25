@@ -56,7 +56,7 @@ const RegisterPage = () => {
                         <label for="lastName">Last Name</label>
                         <input id="lastName" class="border-2 w-96 h-10" onChange={(event) => {lastName = event.target.value}} required/>
                     </div>
-                    <button class="border-2 rounded p-2 mt-4 text-lg" disabled={registerLoading()}>Create Account</button>
+                    <button class="cursor-pointer border-2 rounded p-2 mt-4 text-lg" disabled={registerLoading()}>Create Account</button>
                 </form>
                 <Show when={registerError() !== ""}>
                     <div class="flex justify-center items-center border-2 p-4 m-6 w-96 h-12">

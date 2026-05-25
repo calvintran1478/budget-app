@@ -52,7 +52,7 @@ const LoginPage = () => {
                         <label for="password">Password</label>
                         <input id="password" type="password" class="border-2 w-96 h-10" onChange={(event) => {password = event.target.value}} required/>
                     </div>
-                    <button class="border-2 rounded px-10 py-2 mt-6 text-lg" disabled={loginLoading()}>Login</button>
+                    <button class={`${loginLoading() ? "bg-blue-200" : "cursor-pointer"} border-2 rounded px-10 py-2 mt-6 text-lg`} disabled={loginLoading()}>Login</button>
                 </form>
                 <a href="http://localhost:8080/google-login">
                     <button>Sign in with Google</button>
