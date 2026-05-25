@@ -10,7 +10,6 @@ const TransactionPage = () => {
     const month = currentDate.toLocaleDateString('en-US', { month: 'long' });
     const year = currentDate.getFullYear();
 
-    // const categories = ["Food and Drinks", "Transportation"];
     const currencies = ["CAD", "USD"];
 
     let addTransactionDialog!: HTMLDialogElement;
@@ -154,11 +153,6 @@ const TransactionPage = () => {
         const category = categoryInput.textContent;
         const amount = parseInt(amountInput.value);
         const currency_index = parseInt(currencyInput.value);
-
-        if (name === "") {
-            console.log("why tho?")
-            return;
-        }
 
         const encoder = new TextEncoder();
         const nameBytes = new Uint8Array(encoder.encode(name).buffer);

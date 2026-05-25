@@ -89,9 +89,9 @@ const AnalyticsPage = () => {
 
         // Add category
         const response = await fetch(`${budgetApiDomain}/api/v1/categories`, {
-          method: "POST",
-          headers: { "Authorization": `Bearer ${token()}` },
-          body: combinedBuffer.buffer
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token()}` },
+            body: combinedBuffer.buffer
         });
 
         if (response.ok) {
