@@ -5,8 +5,10 @@ require "pg"
 require "redis"
 require "./utils/env"
 require "./controllers/user_controller"
+require "./controllers/category_controller"
 require "./controllers/transaction_controller"
 require "./repositories/user_repository"
+require "./repositories/category_repository"
 require "./repositories/transaction_repository"
 require "./middleware/auth_middleware"
 
@@ -47,10 +49,12 @@ auth_middleware = Middleware::AuthMiddleware.new(ENV["API_SECRET"])
 # Initialize repositories
 user_repository = Repositories::UserRepository.new(db)
 transaction_repository = Repositories::TransactionRepository.new(db)
+category_repository = Repositories::CategoryRepository.new(db)
 
 # Initialize resource controllers
 user_controller = Controllers::UserController.new(user_repository, auth_db)
 transaction_controller = Controllers::TransactionController.new(transaction_repository, auth_middleware)
+category_controller = Controllers::CategoryController.new(category_repository, auth_middleware)
 
 # Define server handling of requests
 server = HTTP::Server.new do |context|
@@ -72,6 +76,8 @@ server = HTTP::Server.new do |context|
     user_controller.handle_request(context)
   elsif context.request.resource.starts_with?("/api/v1/transactions")
     transaction_controller.handle_request(context)
+  elsif context.request.resource.starts_with?("/api/v1/categories")
+    category_controller.handle_request(context)
 
   # Google Oauth logic
   elsif context.request.path == "/google-login"

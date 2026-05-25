@@ -10,6 +10,7 @@ const HomePage = () => {
                 <div class="flex flex-col items-center w-1/6 border-r-2">
                     <A href="/" class="text-2xl font-medium mt-12 m-6">Home</A>
                     <A href="/transactions" class="text-2xl m-6">Transactions</A>
+                    <A href="/analytics" class="text-2xl m-6">Analytics</A>
                 </div>
                 <div class="flex w-5/6">
                 </div>

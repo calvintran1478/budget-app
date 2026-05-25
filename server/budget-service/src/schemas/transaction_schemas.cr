@@ -2,24 +2,24 @@ require "json"
 require "../utils/buffer"
 
 module Schemas::TransactionSchemas
-  ADD_TRANSACTION_REQUEST_BUFFER_SIZE = 247 # MAX_ADD_TRANSACTION_REQUEST_BODY_SIZE + 1
+  ADD_TRANSACTION_REQUEST_BUFFER_SIZE = 148 # MAX_ADD_TRANSACTION_REQUEST_BODY_SIZE + 1
 
-  MIN_ADD_TRANSACTION_REQUEST_BODY_SIZE = 8
-  MAX_ADD_TRANSACTION_REQUEST_BODY_SIZE = 246 # 4 + 1 + MAX_NAME_SIZE + 1 + MAX_CATEGORY_SIZE
+  MIN_ADD_TRANSACTION_REQUEST_BODY_SIZE = 28 # 4 + 1 + CATEGORY_ID_LENGTH + 1
+  MAX_ADD_TRANSACTION_REQUEST_BODY_SIZE = 147 # 4 + 1 + CATEGORY_ID_LENGTH + MAX_NAME_SIZE
 
+  CATEGORY_ID_LENGTH = 22
   MAX_NAME_SIZE = 120
-  MAX_CATEGORY_SIZE = 120
 
   CURRENCIES = StaticArray["CAD", "USD"]
 
   # Request body schema for POST requests sent to /api/v1/users/transactions
   struct AddTransactionRequest
     getter name : String
-    getter category : String
+    getter category_id : String
     getter amount : Int32
     getter currency_index : Int32
 
-    def initialize(@name : String, @category : String, @amount : Int32, @currency_index : Int32)
+    def initialize(@name : String, @category_id : String, @amount : Int32, @currency_index : Int32)
     end
 
     def AddTransactionRequest.from_context(context : HTTP::Server::Context, add_transaction_request_buffer : UInt8*) : (AddTransactionRequest | Nil)
@@ -34,7 +34,7 @@ module Schemas::TransactionSchemas
       bytesize = Utils::Buffer.read_io_to_buffer(request_body, add_transaction_request_buffer, ADD_TRANSACTION_REQUEST_BUFFER_SIZE)
       if bytesize < MIN_ADD_TRANSACTION_REQUEST_BODY_SIZE || bytesize > MAX_ADD_TRANSACTION_REQUEST_BODY_SIZE
         context.response.status = HTTP::Status::BAD_REQUEST
-        context.response.output << "Payload must be between 8 and 246 bytes"
+        context.response.output << "Payload must be between 28 and 147 bytes"
         return
       end
 
@@ -54,41 +54,19 @@ module Schemas::TransactionSchemas
         return
       end
 
-      # Search for newline character separating name and category
-      newline_ptr = LibC.memchr(add_transaction_request_buffer + 5, '\n'.ord.to_u8, bytesize - 5).as(UInt8*)
-      if newline_ptr.null?
-        context.response.status = HTTP::Status::BAD_REQUEST
-        context.response.output << "Category required"
-        return
-      end
+      # Read category_id
+      category_id = String.new(add_transaction_request_buffer + 5, CATEGORY_ID_LENGTH)
 
       # Read name
-      name_length = newline_ptr - (add_transaction_request_buffer + 5)
-      if name_length == 0
-        context.response.status = HTTP::Status::BAD_REQUEST
-        context.response.output << "Name cannot be empty"
-        return
-      elsif name_length > MAX_NAME_SIZE
+      name_length = bytesize - (5 + CATEGORY_ID_LENGTH)
+      if name_length > MAX_NAME_SIZE
         context.response.status = HTTP::Status::BAD_REQUEST
         context.response.output << "Name can be at most 120 characters"
         return
       end
-      name = String.new(add_transaction_request_buffer + 5, name_length)
+      name = String.new(add_transaction_request_buffer + 5 + CATEGORY_ID_LENGTH, name_length)
 
-      # Read category
-      category_length = bytesize - 6 - name_length
-      if category_length == 0
-        context.response.status = HTTP::Status::BAD_REQUEST
-        context.response.output << "Category cannot be empty"
-        return
-      elsif category_length > MAX_CATEGORY_SIZE
-        context.response.status = HTTP::Status::BAD_REQUEST
-        context.response.output << "Category can be at most 120 characters"
-        return
-      end
-      category = String.new(newline_ptr + 1, category_length)
-
-      AddTransactionRequest.new(name, category, amount, currency_index)
+      AddTransactionRequest.new(name, category_id, amount, currency_index)
     end
   end
 
@@ -97,14 +75,14 @@ module Schemas::TransactionSchemas
     include JSON::Serializable
 
     getter name : (String | Nil)
-    getter category : (String | Nil)
+    getter category_id : (String | Nil)
     getter amount : (Int32 | Nil)
     getter currency_index : (Int32 | Nil)
 
     @[JSON::Field(converter: Time::Format.new("%Y-%m-%d"))]
     getter date : (Time | Nil)
 
-    def initialize(@name : String?, @category : String?, @amount : Int32?, @currency_index : Int32?)
+    def initialize(@name : String?, @category_id : String?, @amount : Int32?, @currency_index : Int32?)
     end
 
     def UpdateTransactionRequest.from_context(context : HTTP::Server::Context) : (UpdateTransactionRequest | Nil)
@@ -133,19 +111,6 @@ module Schemas::TransactionSchemas
         elsif name.size > MAX_NAME_SIZE
           context.response.status = HTTP::Status::BAD_REQUEST
           context.response.output << "Name can be at most 120 characters"
-          return
-        end
-      end
-
-      unless data.category.nil?
-        category = data.category.as(String)
-        if category.size == 0
-          context.response.status = HTTP::Status::BAD_REQUEST
-          context.response.output << "Category cannot be empty"
-          return
-        elsif category.size > MAX_CATEGORY_SIZE
-          context.response.status = HTTP::Status::BAD_REQUEST
-          context.response.output << "Category can be at most 120 characters"
           return
         end
       end

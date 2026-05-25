@@ -58,7 +58,7 @@ struct Controllers::TransactionController
     return if data.nil?
 
     # Add transaction
-    transaction_id = @transaction_repository.create(user_id, data.name, data.category, data.amount, data.currency_index)
+    transaction_id = @transaction_repository.create(user_id, data.name, data.category_id, data.amount, data.currency_index)
 
     # Send success response
     context.response.content_type = "text/plain"
@@ -124,7 +124,7 @@ struct Controllers::TransactionController
     return if data.nil?
 
     # Update transaction
-    unless @transaction_repository.update(user_id, transaction_id, data.name, data.category, data.amount, data.currency_index, data.date)
+    unless @transaction_repository.update(user_id, transaction_id, data.name, data.category_id, data.amount, data.currency_index, data.date)
       context.response.status = HTTP::Status::NOT_FOUND
       context.response.output << "Transaction not found"
       return

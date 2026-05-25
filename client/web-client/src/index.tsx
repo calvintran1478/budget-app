@@ -5,6 +5,7 @@ import "uno.css";
 
 const HomePage = lazy(() => import("./pages/HomePage"));
 const TransactionPage = lazy(() => import("./pages/TransactionPage"));
+const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 const RegisterPage = lazy(() => import("./pages/RegisterPage"));
 const LoginPage = lazy(() => import("./pages/LoginPage"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
@@ -28,6 +29,7 @@ render(
         <Router root={(props) => <AuthProvider>{props.children}</AuthProvider>}>
             <Route path="/" component={HomePage}/>
             <Route path="/transactions" component={TransactionPage}/>
+            <Route path="/analytics" component={AnalyticsPage}/>
             <Route path="/register" component={RegisterPage}/>
             <Route path="/login" component={LoginPage}/>
             <Route path="/auth/callback" component={AuthCallback} />

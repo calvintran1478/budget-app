@@ -10,7 +10,7 @@ const TransactionPage = () => {
     const month = currentDate.toLocaleDateString('en-US', { month: 'long' });
     const year = currentDate.getFullYear();
 
-    const categories = ["Food and Drinks", "Transportation"];
+    // const categories = ["Food and Drinks", "Transportation"];
     const currencies = ["CAD", "USD"];
 
     let addTransactionDialog!: HTMLDialogElement;
@@ -20,6 +20,62 @@ const TransactionPage = () => {
     let currencyInput!: HTMLSelectElement;
 
     const [token, setToken] = useContext(AuthContext) as Signal<string>;
+
+    const fetchCategories = async () => {
+        // Fetch new token if user refreshed the page
+        if (token() === "") setToken(await getToken());
+
+        const response = await fetch(`${budgetApiDomain}/api/v1/categories`, {
+            headers: { "Authorization": `Bearer ${token()}` }
+        });
+
+        if (response.ok) {
+            const buffer = await response.arrayBuffer();
+            const view = new DataView(buffer);
+            const decoder = new TextDecoder("utf-8");
+            const categories = [];
+            let index = 0;
+
+            while (index < buffer.byteLength) {
+                // Decode category id
+                const categoryIdBytes = new Uint8Array(buffer, index, 22);
+                const categoryId = decoder.decode(categoryIdBytes);
+                index += 22;
+
+                // Decode name
+                const nameLength = view.getUint8(index);
+                const nameBytes = new Uint8Array(buffer, index + 1, nameLength);
+                const name = decoder.decode(nameBytes);
+                index += 1 + nameLength;
+
+                // Decode spending limit
+                const spendingLimit = view.getInt32(index);
+                index += 4
+
+                // Decode currency
+                const currencyIndex = view.getUint8(index);
+                index += 1;
+
+                // Add transaction
+                categories.push({
+                    "category_id": categoryId,
+                    "name": name,
+                    "category": spendingLimit,
+                    "currency": currencies[currencyIndex]
+                });
+            }
+
+            console.log(categories)
+            return categories;
+        } else if (response.status === 401) {
+            setToken(await getToken());
+            return fetchCategories();
+        } else {
+            return [];
+        }
+    }
+
+    const [categories] = createResource(fetchCategories);
 
     const fetchTransactions = async () => {
         // Fetch new token if user refreshed the page
@@ -94,7 +150,8 @@ const TransactionPage = () => {
 
         // Get user input
         const name = nameInput.value;
-        const category = categoryInput.value;
+        const categoryId = categoryInput.value;
+        const category = categoryInput.textContent;
         const amount = parseInt(amountInput.value);
         const currency_index = parseInt(currencyInput.value);
 
@@ -105,19 +162,17 @@ const TransactionPage = () => {
 
         const encoder = new TextEncoder();
         const nameBytes = new Uint8Array(encoder.encode(name).buffer);
-        const categoryBytes = new Uint8Array(encoder.encode(category).buffer);
-        const newLineByte = new Uint8Array(encoder.encode('\n').buffer);
+        const categoryIdBytes = new Uint8Array(encoder.encode(categoryId).buffer);
 
         // Construct request body
-        const totalLength = 4 + 1 + name.length + 1 + category.length;
+        const totalLength = 4 + 1 + 22 + name.length;
         const combinedBuffer = new Uint8Array(totalLength);
         const dataView = new DataView(combinedBuffer.buffer);
 
         dataView.setInt32(0, amount, false);
         combinedBuffer[4] = currency_index;
-        combinedBuffer.set(nameBytes, 5);
-        combinedBuffer.set(newLineByte, 5 + name.length);
-        combinedBuffer.set(categoryBytes, 6 + name.length);
+        combinedBuffer.set(categoryIdBytes, 5);
+        combinedBuffer.set(nameBytes, 27);
 
         // Add transaction
         const response = await fetch(`${budgetApiDomain}/api/v1/transactions`, {
@@ -140,7 +195,7 @@ const TransactionPage = () => {
             modifyTransactions.mutate([newTransaction, ...transactions()!])
 
             // Close dialog upon success
-            addTransactionDialog.close();           
+            addTransactionDialog.close();
         } else if (response.status === 401) {
             setToken(await getToken());
             await addTransaction(event);
@@ -156,6 +211,7 @@ const TransactionPage = () => {
                 <div class="flex flex-col items-center w-1/6 border-r-2">
                     <A href="/" class="text-2xl mt-12 m-6">Home</A>
                     <A href="/transactions" class="text-2xl font-medium m-6">Transactions</A>
+                    <A href="/analytics" class="text-2xl m-6">Analytics</A>
                 </div>
                 <div class="flex flex-col items-center w-5/6 p-12">
                     <div class="flex w-9/10 justify-start m-5">
@@ -195,9 +251,9 @@ const TransactionPage = () => {
                     <div class="flex justify-between mt-18 mb-6" style="width: 32rem">
                         <input ref={nameInput} name="transactionName" class="border p-1" placeholder="Name" required/>
                         <select ref={categoryInput} name="category" class="border" required>
-                            <For each={categories}>
+                            <For each={categories()}>
                                 {(category) => (
-                                    <option value={category}>{category}</option>
+                                    <option value={category.category_id}>{category.name}</option>
                                 )}
                             </For>
                         </select>

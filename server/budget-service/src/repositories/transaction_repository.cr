@@ -8,11 +8,11 @@ struct Repositories::TransactionRepository
   # Returns the newly created transaction_id.
   #
   # ```
-  # transaction_repository.create(user_id, "Coffee", "Food and Drinks", 200, 0) # => transaction_id
+  # transaction_repository.create(user_id, "Coffee", category_id, 200, 0) # => transaction_id
   # ```
-  def create(user_id : String, name : String, category : String, amount : Int32, currency_index : Int32) : String
+  def create(user_id : String, name : String, category_id : String, amount : Int32, currency_index : Int32) : String
     transaction_id = Random::Secure.urlsafe_base64()
-    @db.exec "INSERT INTO transactions (user_id, transaction_id, name, category, amount, currency_index) VALUES ($1, $2, $3, $4, $5, $6)", user_id, transaction_id, name, category, amount, currency_index
+    @db.exec "INSERT INTO transactions (user_id, transaction_id, name, category_id, amount, currency_index) VALUES ($1, $2, $3, $4, $5, $6)", user_id, transaction_id, name, category_id, amount, currency_index
 
     transaction_id
   end
@@ -23,7 +23,13 @@ struct Repositories::TransactionRepository
   # transaction_repository.list(user_id, context.response.output)
   # ```
   def list(user_id : String, start_time : Time, end_time : Time, output : IO) : Nil
-    @db.query("SELECT transaction_id, date, amount, name, category, currency_index FROM transactions WHERE user_id=$1 AND date BETWEEN $2 AND $3 ORDER BY date DESC", user_id, start_time, end_time) do |rs|
+    query = <<-SQL
+      SELECT t.transaction_id, t.date, t.amount, t.name, c.name, t.currency_index
+      FROM transactions t INNER JOIN categories c ON t.category_id = c.category_id
+      WHERE t.user_id=$1 AND t.date BETWEEN $2 AND $3 ORDER BY date DESC
+    SQL
+
+    @db.query(query, user_id, start_time, end_time) do |rs|
       rs.each do
         # Read row values
         transaction_id = rs.read(String)
@@ -52,19 +58,19 @@ struct Repositories::TransactionRepository
   # successful.
   #
   # ```
-  # transaction_repository.update(user_id, transaction_id, nil, "Transportation", 400, nil, nil) # => true if transaction was found and updated
+  # transaction_repository.update(user_id, transaction_id, nil, category_id, 400, nil, nil) # => true if transaction was found and updated
   # ```
-  def update(user_id : String, transaction_id : String, name : String?, category : String?, amount : Int32?, currency_index : Int32?, date : Time?) : Bool
+  def update(user_id : String, transaction_id : String, name : String?, category_id : String?, amount : Int32?, currency_index : Int32?, date : Time?) : Bool
     query = <<-SQL
       UPDATE transactions
       SET name = CASE WHEN $1 THEN $2 ELSE name END,
-          category = CASE WHEN $3 THEN $4 ELSE category END,
+          category_id = CASE WHEN $3 THEN $4 ELSE category_id END,
           amount = CASE WHEN $5 THEN $6 ELSE amount END,
           currency_index = CASE WHEN $7 THEN $8 ELSE currency_index END,
           date = CASE WHEN $9 THEN $10 ELSE date END
         WHERE user_id=$11 AND transaction_id=$12
     SQL
-    result = @db.exec query, !name.nil?, name, !category.nil?, category, !amount.nil?, amount, !currency_index.nil?, currency_index, !date.nil?, date, user_id, transaction_id
+    result = @db.exec query, !name.nil?, name, !category_id.nil?, category_id, !amount.nil?, amount, !currency_index.nil?, currency_index, !date.nil?, date, user_id, transaction_id
 
     result.rows_affected == 1
   end
