@@ -56,6 +56,9 @@ user_controller = Controllers::UserController.new(user_repository, auth_db)
 transaction_controller = Controllers::TransactionController.new(transaction_repository, auth_middleware)
 category_controller = Controllers::CategoryController.new(category_repository, auth_middleware)
 
+# Set up static file handler
+static_file_handler = HTTP::StaticFileHandler.new("static", directory_listing: false)
+
 # Define server handling of requests
 server = HTTP::Server.new do |context|
   # Handle CORS
@@ -104,7 +107,9 @@ server = HTTP::Server.new do |context|
     end
 
   else
-    context.response.status = HTTP::Status::NOT_FOUND
+    # Serve static files
+    context.request.path = "/index.html" unless context.request.path.includes?('.')
+    static_file_handler.call(context)
   end
 end
 # Start server

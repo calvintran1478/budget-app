@@ -6,6 +6,7 @@ WORKDIR /app
 
 # Copy source files to working directory
 COPY ./src /app
+COPY ./static /app/static
 COPY shard.yml shard.lock /app
 
 # Install required dependencies
@@ -17,6 +18,7 @@ RUN crystal build --release --static server.cr
 # Copy the compiled binary and required files to a minmal alpine instance
 FROM docker.io/alpine:latest
 COPY --from=builder /app/server /server
+COPY --from=builder /app/static /static
 
 # Expose port the app runs on
 EXPOSE 8000
