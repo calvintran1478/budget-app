@@ -66,7 +66,6 @@ const TransactionPage = () => {
                 });
             }
 
-            console.log(categories)
             return categories;
         } else if (response.status === 401) {
             setToken(await getToken());
@@ -75,8 +74,6 @@ const TransactionPage = () => {
             return [];
         }
     }
-
-    const [categories] = createResource(fetchCategories);
 
     const fetchTransactions = async () => {
         // Fetch new token if user refreshed the page
@@ -145,6 +142,8 @@ const TransactionPage = () => {
 
     const [transactions, modifyTransactions] = createResource(fetchTransactions);
 
+    const [categories] = createResource(fetchCategories);
+
     const addTransaction = async (event: Event) => {
         // Prevent refresh
         event.preventDefault();
@@ -182,7 +181,7 @@ const TransactionPage = () => {
             const now = new Date();
             const newTransaction = {
                 "transaction_id": await response.text(),
-                "date": `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`,
+                "date": now.toLocaleDateString("en-US", { month: "long", day: "2-digit", year: "numeric" }),
                 "amount": amount,
                 "name": name,
                 "category": category,
