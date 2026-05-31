@@ -76,8 +76,12 @@ struct Controllers::TransactionController
   # If start and/or end times are provided, they should be of the from %Y-%m-%d
   # (e.g., 2026-05-06).
   #
+  # if "sum=1" is included as a parameter, then the total value of all
+  # transactions within each category is returned instead. Start and end times
+  # can be applied to this summation as well.
+  #
   # Method: GET
-  # Path: /api/v1/transactions?start={start_time}&end={end_time}
+  # Path: /api/v1/transactions?start={start_time}&end={end_time}&sum={sum}
   def get_transactions(context : HTTP::Server::Context) : Nil
     # Get user
     user_id_buffer = uninitialized UInt8[USER_ID_STRING_LENGTH]
@@ -103,10 +107,20 @@ struct Controllers::TransactionController
       return
     end
 
+    begin
+      sum_param = context.request.query_params["sum"]?
+      if !sum_param.nil? && sum_param != "1"
+        context.response.status = HTTP::Status::BAD_REQUEST
+        context.response.output << "Invalid value for sum flag"
+        return
+      end
+      sum = (sum_param == "1")
+    end
+
     # Send transactions
     context.response.content_type = "application/octect-stream"
     context.response.status = HTTP::Status::OK
-    @transaction_repository.list(user_id, start_time, end_time, context.response.output)
+    @transaction_repository.list(user_id, start_time, end_time, sum, context.response.output)
   end
 
   # Updates a transaction for the user.

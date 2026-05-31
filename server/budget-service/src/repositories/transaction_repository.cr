@@ -17,37 +17,59 @@ struct Repositories::TransactionRepository
     transaction_id
   end
 
-  # Lists transactions from a single user and writes it to the given IO.
+  # Lists transactions (or total value of transactions) from a single user and
+  # writes it to the given IO.
   #
   # ```
   # transaction_repository.list(user_id, context.response.output)
   # ```
-  def list(user_id : String, start_time : Time, end_time : Time, output : IO) : Nil
-    query = <<-SQL
-      SELECT t.transaction_id, t.date, t.amount, t.name, c.name, t.currency_index
-      FROM transactions t INNER JOIN categories c ON t.category_id = c.category_id
-      WHERE t.user_id=$1 AND t.date BETWEEN $2 AND $3 ORDER BY date DESC
-    SQL
+  def list(user_id : String, start_time : Time, end_time : Time, sum : Bool, output : IO) : Nil
+    if sum
+      query = <<-SQL
+        SELECT c.name, SUM(t.amount)
+        FROM transactions t INNER JOIN categories c ON t.category_id = c.category_id
+        WHERE t.user_id = $1 AND t.date BETWEEN $2 AND $3
+        GROUP BY c.name
+      SQL
 
-    @db.query(query, user_id, start_time, end_time) do |rs|
-      rs.each do
-        # Read row values
-        transaction_id = rs.read(String)
-        date = rs.read(Time)
-        amount = rs.read(Int32)
-        name = rs.read(String)
-        category = rs.read(String)
-        currency_index = rs.read(Int32)
+      @db.query(query, user_id, start_time, end_time) do |rs|
+        rs.each do
+          # Read row values
+          category = rs.read(String)
+          sum_value = rs.read(Int64)
 
-        # Write row values to the provided IO
-        output << transaction_id
-        date.to_s(output, "%b %d, %Y")
-        IO::ByteFormat::NetworkEndian.encode(amount, output)
-        output.write_byte(name.bytesize.to_u8)
-        output << name
-        output.write_byte(category.bytesize.to_u8)
-        output << category
-        output.write_byte(currency_index.to_u8)
+          output.write_byte(category.bytesize.to_u8)
+          output << category
+          IO::ByteFormat::NetworkEndian.encode(sum_value, output)
+        end
+      end
+    else
+      query = <<-SQL
+        SELECT t.transaction_id, t.date, t.amount, t.name, c.name, t.currency_index
+        FROM transactions t INNER JOIN categories c ON t.category_id = c.category_id
+        WHERE t.user_id=$1 AND t.date BETWEEN $2 AND $3 ORDER BY date DESC
+      SQL
+
+      @db.query(query, user_id, start_time, end_time) do |rs|
+        rs.each do
+          # Read row values
+          transaction_id = rs.read(String)
+          date = rs.read(Time)
+          amount = rs.read(Int32)
+          name = rs.read(String)
+          category = rs.read(String)
+          currency_index = rs.read(Int32)
+
+          # Write row values to the provided IO
+          output << transaction_id
+          date.to_s(output, "%b %d, %Y")
+          IO::ByteFormat::NetworkEndian.encode(amount, output)
+          output.write_byte(name.bytesize.to_u8)
+          output << name
+          output.write_byte(category.bytesize.to_u8)
+          output << category
+          output.write_byte(currency_index.to_u8)
+        end
       end
     end
   end
