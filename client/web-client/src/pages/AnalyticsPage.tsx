@@ -1,5 +1,5 @@
 import { A } from "@solidjs/router";
-import { useContext, type Signal, For } from "solid-js";
+import { createResource, useContext, type Signal, For } from "solid-js";
 import { AuthContext, budgetApiDomain } from "../index.tsx";
 import { getToken } from "../utils/token.ts";
 
@@ -9,6 +9,7 @@ const AnalyticsPage = () => {
     const currencies = ["CAD", "USD"];
 
     let addCategoryDialog!: HTMLDialogElement;
+    let viewCategoriesDialog!: HTMLDialogElement;
     let nameInput!: HTMLInputElement;
     let spendingLimitInput!: HTMLInputElement;
     let currencyInput!: HTMLSelectElement;
@@ -24,7 +25,7 @@ const AnalyticsPage = () => {
         // Fetch new token if user refreshed the page
         if (token() === "") setToken(await getToken());
 
-        const response = await fetch(`${budgetApiDomain}/api/v1/transactions`, {
+        const response = await fetch(`${budgetApiDomain}/api/v1/categories`, {
             headers: { "Authorization": `Bearer ${token()}` }
         });
 
@@ -72,6 +73,8 @@ const AnalyticsPage = () => {
             return [];
         }
     }
+
+    const [categories] = createResource(fetchCategories);
 
     const addCategory = async (event: Event) => {
         // Prevent refresh
@@ -130,7 +133,10 @@ const AnalyticsPage = () => {
                     <div class="flex w-9/10 justify-start m-5">
                         <h1 class="text-3xl font-medium">Analytics</h1>
                     </div>
-                    <button class="cursor-pointer p-2 border" command="show-modal" commandfor="add-category">Add Category</button>
+                    <div class="flex w-9/10 justify-start m-5">
+                        <button class="cursor-pointer p-2 border mr-10" command="show-modal" commandfor="add-category">Add Category</button>
+                        <button class="cursor-pointer p-2 border" command="show-modal" commandfor="view-categories">View Categories</button>
+                    </div>
                 </div>
             </div>
             <dialog ref={addCategoryDialog} id="add-category" style="width: 40rem; height: 16rem" class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border">
@@ -149,6 +155,17 @@ const AnalyticsPage = () => {
                     </div>
                     <button class="cursor-pointer border p-2 mt-6">Add Category</button>
                 </form>
+            </dialog>
+            <dialog ref={viewCategoriesDialog} id="view-categories" style="width: 40rem; height: 20rem" class="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border">
+                <button class="cursor-pointer absolute top-4 right-4" command="close" commandfor="view-categories">Close</button>
+                <h2 class="text-xl absolute left-1/2 -translate-x-1/2 top-6">Categories</h2>
+                <ul class="list-disc mt-18 ml-10">
+                    <For each={categories()}>
+                        {(category) => (
+                            <li class="my-2">{category.name}</li>
+                        )}
+                    </For>
+                </ul>
             </dialog>
         </div>
     )
