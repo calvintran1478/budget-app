@@ -13,6 +13,12 @@ const TransactionPage = () => {
     const currencies = ["CAD", "USD"];
 
     const currencyFormatter = new Intl.NumberFormat('en-US', {style: "currency", currency: "USD"});
+    const inputCurrencyFormatter = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 
     let addTransactionDialog!: HTMLDialogElement;
     let nameInput!: HTMLInputElement;
@@ -152,7 +158,7 @@ const TransactionPage = () => {
         const name = nameInput.value;
         const categoryId = categoryInput.value;
         const category = categoryInput.textContent;
-        const amount = parseInt(amountInput.value);
+        const amount = Math.round(parseFloat(amountInput.value.substring(1)) * 100);
         const currency_index = parseInt(currencyInput.value);
 
         const encoder = new TextEncoder();
@@ -195,6 +201,11 @@ const TransactionPage = () => {
             setToken(await getToken());
             await addTransaction(event);
         }
+    }
+
+    const formatCurrencyInput = () => {
+        const value = parseFloat(amountInput.value);
+        amountInput.value = inputCurrencyFormatter.format(!isNaN(value) && value >= 0 ? value : 0);
     }
 
     return (
@@ -254,7 +265,7 @@ const TransactionPage = () => {
                         </select>
                     </div>
                     <div class="flex justify-between my-6" style="width: 32rem">
-                        <input ref={amountInput} name="amount" type="number" min="0" class="border p-1" placeholder="Amount" required/>
+                        <input ref={amountInput} name="amount" onChange={formatCurrencyInput} class="border p-1" placeholder="Amount" required/>
                         <select ref={currencyInput} name="currency" class="border" required>
                             <For each={currencies}>
                                 {(currency, index) => (

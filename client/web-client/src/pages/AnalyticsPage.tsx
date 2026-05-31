@@ -13,6 +13,13 @@ const AnalyticsPage = () => {
     let spendingLimitInput!: HTMLInputElement;
     let currencyInput!: HTMLSelectElement;
 
+    const inputCurrencyFormatter = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+
     const fetchCategories = async () => {
         // Fetch new token if user refreshed the page
         if (token() === "") setToken(await getToken());
@@ -72,7 +79,7 @@ const AnalyticsPage = () => {
 
         // Get user input
         const name = nameInput.value;
-        const spendingLimit = parseInt(spendingLimitInput.value);
+        const spendingLimit =  Math.round(parseFloat(spendingLimitInput.value.substring(1)) * 100);        
         const currency_index = parseInt(currencyInput.value);
 
         const encoder = new TextEncoder();
@@ -102,7 +109,12 @@ const AnalyticsPage = () => {
             await addCategory(event);
         }
     }
-    
+
+    const formatCurrencyInput = () => {
+        const value = parseFloat(spendingLimitInput.value);
+        spendingLimitInput.value = inputCurrencyFormatter.format(!isNaN(value) && value >= 0 ? value : 0);
+    }
+
     return (
         <div class="flex flex-col w-screen h-screen">
             <div class="flex items-center w-screen h-1/8 border-b-2">
@@ -126,7 +138,7 @@ const AnalyticsPage = () => {
                 <form onSubmit={addCategory} class="flex flex-col items-center">
                     <div class="flex flex-row mt-18 my-6">
                         <input ref={nameInput} name="categoryName" class="border p-1" placeholder="Name" required/>
-                        <input ref={spendingLimitInput} name="spendingLimit" type="number" min="0" class="border p-1 w-36 mx-8" placeholder="Spending Limit" required/>
+                        <input ref={spendingLimitInput} name="spendingLimit" onChange={formatCurrencyInput} class="border p-1 w-36 mx-8" placeholder="Spending Limit" required/>
                         <select ref={currencyInput} name="currency" class="border" required>
                             <For each={currencies}>
                                 {(currency, index) => (
