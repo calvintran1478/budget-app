@@ -60,7 +60,7 @@ const AnalyticsPage = () => {
                 categories.push({
                     "category_id": categoryId,
                     "name": name,
-                    "category": spendingLimit,
+                    "spendingLimit": spendingLimit,
                     "currency": currencies[currencyIndex]
                 });
             }
@@ -74,7 +74,7 @@ const AnalyticsPage = () => {
         }
     }
 
-    const [categories] = createResource(fetchCategories);
+    const [categories, modifyCategories] = createResource(fetchCategories);
 
     const addCategory = async (event: Event) => {
         // Prevent refresh
@@ -83,7 +83,7 @@ const AnalyticsPage = () => {
         // Get user input
         const name = nameInput.value;
         const spendingLimit =  Math.round(parseFloat(spendingLimitInput.value.substring(1)) * 100);        
-        const currency_index = parseInt(currencyInput.value);
+        const currencyIndex = parseInt(currencyInput.value);
 
         const encoder = new TextEncoder();
         const nameBytes = new Uint8Array(encoder.encode(name).buffer);
@@ -94,7 +94,7 @@ const AnalyticsPage = () => {
         const dataView = new DataView(combinedBuffer.buffer);
 
         dataView.setInt32(0, spendingLimit, false);
-        combinedBuffer[4] = currency_index;
+        combinedBuffer[4] = currencyIndex;
         combinedBuffer.set(nameBytes, 5);
 
         // Add category
@@ -105,6 +105,15 @@ const AnalyticsPage = () => {
         });
 
         if (response.ok) {
+            // Add newly created category to the UI
+            const newCategory = {
+                "category_id": await response.text(),
+                "name": name,
+                "spendingLimit": spendingLimit,
+                "currency": currencies[currencyIndex]
+            }
+            modifyCategories.mutate([...categories()!, newCategory]);
+
             // Close dialog upon success
             addCategoryDialog.close();
         } else if (response.status === 401) {
