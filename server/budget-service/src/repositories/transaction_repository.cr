@@ -40,7 +40,7 @@ struct Repositories::TransactionRepository
 
           output.write_byte(category.bytesize.to_u8)
           output << category
-          IO::ByteFormat::NetworkEndian.encode(sum_value, output)
+          IO::ByteFormat::NetworkEndian.encode(sum_value.to_i32, output)
         end
       end
     else

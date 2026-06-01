@@ -42,8 +42,8 @@ const HomePage = () => {
                 index += 1 + categoryLength;
 
                 // Decode amount
-                const spendingValue = view.getBigInt64(index);
-                index += 8
+                const spendingValue = view.getInt32(index);
+                index += 4
 
                 // Add category spending
                 categorySpending.push({
@@ -53,7 +53,7 @@ const HomePage = () => {
                 });
 
                 // Add spending value to total
-                totalSpendingAccumulator += Number(spendingValue);
+                totalSpendingAccumulator += spendingValue;
             }
             setTotalSpending(currencyFormatter.format(totalSpendingAccumulator / 100));
 
@@ -123,7 +123,7 @@ const HomePage = () => {
                                 <div class="flex flex-col m-6 w-3/4">
                                     <div class="flex justify-between">
                                         <label class="text-xl font-medium">{cs.category}</label>
-                                        <span class="text-xl">{currencyFormatter.format(Number(cs.spendingValue) / 100)} / {currencyFormatter.format(cs.spendingLimit / 100)}</span>
+                                        <span class="text-xl">{currencyFormatter.format(cs.spendingValue / 100)} / {currencyFormatter.format(cs.spendingLimit / 100)}</span>
                                     </div>
                                     <progress class="w-full" max={cs.spendingLimit} value={cs.spendingValue.toString()}></progress>
                                 </div>
