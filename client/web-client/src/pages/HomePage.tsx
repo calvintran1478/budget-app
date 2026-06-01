@@ -79,9 +79,17 @@ const HomePage = () => {
                 // Skip over currency
                 index += 1;
 
-                // Search for category in category sums
+                // Search for category in category spending
                 const categoryIndex = categorySpending.findIndex((x) => x.category === category)
-                categorySpending[categoryIndex].spendingLimit = spendingLimit;
+                if (categoryIndex !== -1) {
+                    categorySpending[categoryIndex].spendingLimit = spendingLimit;
+                } else {
+                    categorySpending.push({
+                        "category": category,
+                        "spendingValue": 0,
+                        "spendingLimit": spendingLimit
+                    });
+                }
             }
 
             return categorySpending;
