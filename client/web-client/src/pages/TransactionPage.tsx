@@ -63,11 +63,11 @@ const TransactionPage = () => {
                 const currencyIndex = view.getUint8(index);
                 index += 1;
 
-                // Add transaction
+                // Add category
                 categories.push({
                     "category_id": categoryId,
                     "name": name,
-                    "category": spendingLimit,
+                    "spendingLimit": spendingLimit,
                     "currency": currencies[currencyIndex]
                 });
             }
@@ -141,6 +141,7 @@ const TransactionPage = () => {
             return transactions;
         } else if (response.status === 401) {
             setToken(await getToken());
+            return await fetchTransactions();
         } else {
             return [];
         }
