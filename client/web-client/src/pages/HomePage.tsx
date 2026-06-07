@@ -92,6 +92,9 @@ const HomePage = () => {
                 }
             }
 
+            // Sort statistics by category name
+            categorySpending.sort((a, b) => a.category.localeCompare(b.category));
+
             return categorySpending;
         } else if (spendingResponse.status === 401 || categoryResponse.status === 401) {
             setToken(await getToken());
