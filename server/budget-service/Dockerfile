@@ -1,5 +1,5 @@
 # Set the base image using Crystal 1.20
-FROM docker.io/crystallang/crystal:1.20-alpine AS builder
+FROM docker.io/crystallang/crystal:1.20.2-alpine AS builder
 
 # Set the working directory to /app
 WORKDIR /app
