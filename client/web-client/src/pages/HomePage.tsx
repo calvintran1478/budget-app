@@ -104,17 +104,17 @@ const HomePage = () => {
     const [categorySpending] = createResource(fetchSpending);
 
     return (
-        <div class="flex flex-col w-screen h-screen">
-            <div class="flex items-center w-screen h-1/8 border-b-2">
+        <div class="flex flex-col">
+            <div class="flex items-center w-screen h-1/8 border-b-2 fixed top-0 bg-white">
                 <h1 class="p-6 text-2xl"><A href="/">Budget App</A></h1>
             </div>
-            <div class="flex w-screen h-7/8">
-                <div class="flex flex-col items-center w-1/6 border-r-2">
+            <div class="flex flex-row-reverse h-7/8">
+                <div class="flex flex-col items-center w-1/6 border-r-2 fixed left-0 top-1/8 h-full">
                     <A href="/" class="text-2xl font-medium mt-12 m-6">Home</A>
                     <A href="/transactions" class="text-2xl m-6">Transactions</A>
                     <A href="/analytics" class="text-2xl m-6">Analytics</A>
                 </div>
-                <div class="flex flex-col items-center w-5/6">
+                <div class="flex flex-col items-center w-5/6 mt-22 mb-6">
                     <h2 class="text-3xl font-medium mt-16">Total Spending:</h2>
                     <Suspense fallback={<p class="text-2xl mt-6">Loading...</p>}>
                         <h3 class="text-3xl mt-6 mb-16">{totalSpending()}</h3>
