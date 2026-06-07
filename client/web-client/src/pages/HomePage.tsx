@@ -16,17 +16,12 @@ const HomePage = () => {
         if (token() === "") setToken(await getToken());
 
         // Fetch spending information
-        const spendingRequest = fetch(`${budgetApiDomain}/api/v1/transactions?sum=1`, {
-            headers: { "Authorization": `Bearer ${token()}` }
-        });
-        const categoryRequest = await fetch(`${budgetApiDomain}/api/v1/categories`, {
+        const spendingResponse = await fetch(`${budgetApiDomain}/api/v1/transactions?sum=1`, {
             headers: { "Authorization": `Bearer ${token()}` }
         });
         let totalSpendingAccumulator = 0;
 
-        const [spendingResponse, categoryResponse] = await Promise.all([spendingRequest, categoryRequest]);
-
-        if (spendingResponse.ok && categoryResponse.ok) {
+        if (spendingResponse.ok) {
             // Decode spending response
             let buffer = await spendingResponse.arrayBuffer();
             let view = new DataView(buffer);
@@ -43,13 +38,17 @@ const HomePage = () => {
 
                 // Decode amount
                 const spendingValue = view.getInt32(index);
-                index += 4
+                index += 4;
+
+                // Decode spding limit
+                const spendingLimit = view.getInt32(index);
+                index += 4;
 
                 // Add category spending
                 categorySpending.push({
                     "category": category,
                     "spendingValue": spendingValue,
-                    "spendingLimit": 0
+                    "spendingLimit": spendingLimit
                 });
 
                 // Add spending value to total
@@ -57,46 +56,8 @@ const HomePage = () => {
             }
             setTotalSpending(currencyFormatter.format(totalSpendingAccumulator / 100));
 
-            // Decode category response
-            buffer = await categoryResponse.arrayBuffer();
-            view = new DataView(buffer);
-            index = 0;
-
-            while (index < buffer.byteLength) {
-                // Skip over category id
-                index += 22;
-
-                // Decode name
-                const categoryLength = view.getUint8(index);
-                const categoryBytes = new Uint8Array(buffer, index + 1, categoryLength);
-                const category = decoder.decode(categoryBytes);
-                index += 1 + categoryLength;
-
-                // Decode spending limit
-                const spendingLimit = view.getInt32(index);
-                index += 4
-
-                // Skip over currency
-                index += 1;
-
-                // Search for category in category spending
-                const categoryIndex = categorySpending.findIndex((x) => x.category === category)
-                if (categoryIndex !== -1) {
-                    categorySpending[categoryIndex].spendingLimit = spendingLimit;
-                } else {
-                    categorySpending.push({
-                        "category": category,
-                        "spendingValue": 0,
-                        "spendingLimit": spendingLimit
-                    });
-                }
-            }
-
-            // Sort statistics by category name
-            categorySpending.sort((a, b) => a.category.localeCompare(b.category));
-
             return categorySpending;
-        } else if (spendingResponse.status === 401 || categoryResponse.status === 401) {
+        } else if (spendingResponse.status === 401) {
             setToken(await getToken());
             return await fetchSpending();
         } else {

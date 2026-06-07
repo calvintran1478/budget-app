@@ -26,21 +26,34 @@ struct Repositories::TransactionRepository
   def list(user_id : String, start_time : Time, end_time : Time, sum : Bool, output : IO) : Nil
     if sum
       query = <<-SQL
-        SELECT c.name, SUM(t.amount)
-        FROM transactions t INNER JOIN categories c ON t.category_id = c.category_id
-        WHERE t.user_id = $1 AND t.date BETWEEN $2 AND $3
-        GROUP BY c.name
+        WITH spending_stats AS(
+          SELECT c.name, SUM(t.amount), c.spending_limit
+          FROM transactions t INNER JOIN categories c ON t.category_id = c.category_id
+          WHERE t.user_id = $1 AND t.date BETWEEN $2 AND $3
+          GROUP BY c.name, c.spending_limit
+        ),
+        default_stats AS(
+          SELECT c2.name, 0, c2.spending_limit
+          FROM categories c2
+          WHERE user_id = $4 AND NOT EXISTS (SELECT 1 FROM spending_stats s WHERE s.name = c2.name)
+        )
+        SELECT * FROM spending_stats
+        UNION ALL
+        SELECT * FROM default_stats
+        ORDER BY name
       SQL
 
-      @db.query(query, user_id, start_time, end_time) do |rs|
+      @db.query(query, user_id, start_time, end_time, user_id) do |rs|
         rs.each do
           # Read row values
           category = rs.read(String)
           sum_value = rs.read(Int64)
+          spending_limit = rs.read(Int32)
 
           output.write_byte(category.bytesize.to_u8)
           output << category
           IO::ByteFormat::NetworkEndian.encode(sum_value.to_i32, output)
+          IO::ByteFormat::NetworkEndian.encode(spending_limit, output)
         end
       end
     else
